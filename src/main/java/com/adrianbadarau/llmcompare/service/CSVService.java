@@ -16,13 +16,16 @@ public class CSVService {
 
     public List<DataItem> parseCSV(InputStream inputStream) throws IOException {
         try (BufferedReader fileReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-             CSVParser csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT.withFirstRecordAsHeader().withIgnoreHeaderCase().withTrim())) {
+             CSVParser csvParser = new CSVParser(fileReader, CSVFormat.EXCEL.withDelimiter(';').withFirstRecordAsHeader().withIgnoreHeaderCase().withTrim())) {
 
             List<DataItem> records = new ArrayList<>();
             Iterable<CSVRecord> csvRecords = csvParser.getRecords();
             var i = 0;
             for (CSVRecord csvRecord : csvRecords) {
-                String data = csvRecord.get("Column1") + "|" + csvRecord.get("Column2") + "|" + csvRecord.get("Column3") + "\n";
+                // Adjust these column names to match your CSV headers exactly
+                String data = csvRecord.get("Column 1") + "|"
+                        + csvRecord.get("Column 2") + "|"
+                        + csvRecord.get("Column 3") + "\n";
                 var record = new DataItem(data, i++);
                 records.add(record);
             }
