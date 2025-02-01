@@ -53,6 +53,24 @@ public class InteractionsController {
         }
     }
 
+    @GetMapping("/test")
+    public ResponseEntity<String> testEndpoint() {
+
+        var item = new DataItem("Sample data A", 1);
+        var pos = 0;
+
+        for (int i = 0; i < 1000; i++) {
+            var res = llmService.compareItems(item, item);
+            if (res.trim().toLowerCase().contains("yes")) {
+                pos++;
+            } else {
+                System.out.println("NO");
+            }
+        }
+        double percentage = (pos / 1000.0) * 100;
+        return ResponseEntity.ok("Positive matches: " + percentage + "%");
+    }
+
     private List<DataItem> parseFile(MultipartFile file) throws IOException {
         if (file.getOriginalFilename().endsWith(".csv")) {
             return csvService.parseCSV(file.getInputStream());
