@@ -32,6 +32,11 @@ public class LLMService {
     }
 
     private String getComparePrompt(DataItem item1, DataItem item2) {
+
+        if (item1 == null || item2 == null || item1.getData() == null || item2.getData() == null) {
+            throw new IllegalArgumentException("Both items and their data must be non-null");
+        }
+
         var prompt = new StringBuilder();
 
         prompt.append("Please tell me if the items bellow are referring to the same issue: \n");
