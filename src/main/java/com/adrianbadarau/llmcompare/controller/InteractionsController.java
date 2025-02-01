@@ -1,28 +1,33 @@
 package com.adrianbadarau.llmcompare.controller;
 
 import com.adrianbadarau.llmcompare.model.DataItem;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
+import com.adrianbadarau.llmcompare.service.CSVService;
+import com.adrianbadarau.llmcompare.service.ExcelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @RestController
 @RequestMapping("/api/interactions")
 public class InteractionsController {
 
+    private final CSVService csvService;
+    private final ExcelService excelService;
+
+    public InteractionsController(CSVService csvService, ExcelService excelService) {
+        this.csvService = csvService;
+        this.excelService = excelService;
+    }
+
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    public ResponseEntity<List<DataItem>> uploadCSV(
+    public ResponseEntity<List<DataItem>> uploadFiles(
             @RequestParam("file1") MultipartFile file1,
-            @RequestParam("file2") MultipartFile file2) throws IOException {
+            @RequestParam("file2") MultipartFile file2) {
 
         // Validate files
         if (file1 == null || file1.getSize() <= 0 ||
@@ -33,12 +38,12 @@ public class InteractionsController {
         List<DataItem> result = new ArrayList<>();
 
         try {
-            // Parse first CSV file
-            List<DataItem> parsedData1 = parseCSV(file1.getInputStream());
+            // Parse first file
+            List<DataItem> parsedData1 = parseFile(file1);
             result.addAll(parsedData1);
 
-            // Parse second CSV file
-            List<DataItem> parsedData2 = parseCSV(file2.getInputStream());
+            // Parse second file
+            List<DataItem> parsedData2 = parseFile(file2);
             result.addAll(parsedData2);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
@@ -47,22 +52,13 @@ public class InteractionsController {
         return ResponseEntity.ok(result);
     }
 
-    private List<DataItem> parseCSV(InputStream inputStream) throws IOException {
-        try (BufferedReader fileReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-             CSVParser csvParser = new CSVParser(fileReader, CSVFormat.DEFAULT.withFirstRecordAsHeader().withIgnoreHeaderCase().withTrim())) {
-
-            List<DataItem> records = new ArrayList<>();
-            Iterable<CSVRecord> csvRecords = csvParser.getRecords();
-            var i = 0;
-            for (CSVRecord csvRecord : csvRecords) {
-                String data = csvRecord.get("Column1")+ "|" + csvRecord.get("Column2")+ "|" + csvRecord.get("Column3")+"\n";
-                var record = new DataItem(data, i++);
-                records.add(record);
-            }
-
-            return records;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to parse CSV file: " + e.getMessage());
+    private List<DataItem> parseFile(MultipartFile file) throws IOException {
+        if (file.getOriginalFilename().endsWith(".csv")) {
+            return csvService.parseCSV(file.getInputStream());
+        } else if (file.getOriginalFilename().endsWith(".xls") || file.getOriginalFilename().endsWith(".xlsx")) {
+            return excelService.parseExcel(file.getInputStream());
+        } else {
+            throw new IllegalArgumentException("Unsupported file format: " + file.getOriginalFilename());
         }
     }
 }
