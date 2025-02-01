@@ -3,6 +3,7 @@ package com.adrianbadarau.llmcompare.controller;
 import com.adrianbadarau.llmcompare.model.DataItem;
 import com.adrianbadarau.llmcompare.service.CSVService;
 import com.adrianbadarau.llmcompare.service.ExcelService;
+import com.adrianbadarau.llmcompare.service.LLMService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,14 +19,16 @@ public class InteractionsController {
 
     private final CSVService csvService;
     private final ExcelService excelService;
+    private final LLMService llmService;
 
-    public InteractionsController(CSVService csvService, ExcelService excelService) {
+    public InteractionsController(CSVService csvService, ExcelService excelService, LLMService llmService) {
         this.csvService = csvService;
         this.excelService = excelService;
+        this.llmService = llmService;
     }
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    public ResponseEntity<List<DataItem>> uploadFiles(
+    public ResponseEntity<String> uploadFiles(
             @RequestParam("file1") MultipartFile file1,
             @RequestParam("file2") MultipartFile file2) {
 
@@ -49,7 +52,9 @@ public class InteractionsController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
 
-        return ResponseEntity.ok(result);
+        String comparisonResult = llmService.compareItems(result.getFirst(), result.getLast());
+
+        return ResponseEntity.ok(comparisonResult);
     }
 
     private List<DataItem> parseFile(MultipartFile file) throws IOException {
