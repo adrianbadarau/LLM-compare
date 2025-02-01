@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -28,7 +28,7 @@ public class InteractionsController {
     }
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    public ResponseEntity<String> uploadFiles(
+    public ResponseEntity<List<HashMap<Integer, Integer>>> uploadFiles(
             @RequestParam("file1") MultipartFile file1,
             @RequestParam("file2") MultipartFile file2) {
 
@@ -38,23 +38,19 @@ public class InteractionsController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        List<DataItem> result = new ArrayList<>();
-
         try {
             // Parse first file
             List<DataItem> parsedData1 = parseFile(file1);
-            result.addAll(parsedData1);
-
             // Parse second file
             List<DataItem> parsedData2 = parseFile(file2);
-            result.addAll(parsedData2);
+            // Find similarities
+            List<HashMap<Integer, Integer>> similarities = llmService.findSimilarItems(parsedData1, parsedData2);
+
+            return ResponseEntity.ok(similarities);
+
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
-
-        String comparisonResult = llmService.compareItems(result.getFirst(), result.getLast());
-
-        return ResponseEntity.ok(comparisonResult);
     }
 
     private List<DataItem> parseFile(MultipartFile file) throws IOException {

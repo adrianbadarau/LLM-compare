@@ -3,10 +3,13 @@ package com.adrianbadarau.llmcompare.service;
 import com.adrianbadarau.llmcompare.model.DataItem;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.ollama.api.OllamaOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.xml.crypto.Data;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 @Service
 public class LLMService {
@@ -20,7 +23,9 @@ public class LLMService {
     public String compareItems(DataItem item1, DataItem item2) {
         var prompt = getComparePrompt(item1, item2);
         var res =  chatModel.call(
-                new Prompt(prompt)
+                new Prompt(prompt,
+                        OllamaOptions.builder().numPredict(3).build()
+                )
         );
 
         return res.getResult().getOutput().getText();
@@ -36,4 +41,25 @@ public class LLMService {
 
         return prompt.toString();
     }
+
+    public List<HashMap<Integer, Integer>> findSimilarItems(List<DataItem> list1, List<DataItem> list2) {
+        List<HashMap<Integer, Integer>> similarities = new ArrayList<>();
+
+        for (DataItem item1 : list1) {
+            for (DataItem item2 : list2) {
+                // Call LLM to check similarity
+                String result = compareItems(item1, item2);
+
+                // If LLM indicates similarity, add to result
+                if (result.trim().toLowerCase().contains("yes")) {
+                    HashMap<Integer, Integer> map = new HashMap<>();
+                    map.put(item1.getRowNum(), item2.getRowNum());
+                    similarities.add(map);
+                }
+            }
+        }
+
+        return similarities;
+    }
+
 }
